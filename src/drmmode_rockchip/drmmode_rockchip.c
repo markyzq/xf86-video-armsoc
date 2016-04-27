@@ -40,16 +40,6 @@
 		DRM_ROCKCHIP_PLANE_SET_ZPOS, struct drm_rockchip_plane_set_zpos)
 */
 
-struct drm_rockchip_gem_create {
-	uint64_t size;
-	uint32_t flags;
-	uint32_t handle;
-};
-
-#define DRM_ROCKCHIP_GEM_CREATE 0x00
-#define DRM_IOCTL_ROCKCHIP_GEM_CREATE DRM_IOWR(DRM_COMMAND_BASE + \
-		DRM_ROCKCHIP_GEM_CREATE, struct drm_rockchip_gem_create)
-
 /* Cursor dimensions
  * Technically we probably don't have any size limit.. since we
  * are just using an overlay... but xserver will always create
@@ -69,31 +59,34 @@ struct drm_rockchip_gem_create {
 
 static int create_custom_gem(int fd, struct armsoc_create_gem *create_gem)
 {
-	struct drm_rockchip_gem_create create_rockchip;
+	struct drm_mode_create_dumb arg;
 	int ret;
 	unsigned int pitch;
 
 	/* make pitch a multiple of 64 bytes for best performance */
 	pitch = ALIGN(create_gem->width * ((create_gem->bpp + 7) / 8), 64);
-	memset(&create_rockchip, 0, sizeof(create_rockchip));
-	create_rockchip.size = create_gem->height * pitch;
+	memset(&arg, 0, sizeof(arg));
+	arg.bpp = create_gem->bpp;
+	arg.width = pitch;
+	arg.height = create_gem->height;
 
 	assert((create_gem->buf_type == ARMSOC_BO_SCANOUT) ||
 			(create_gem->buf_type == ARMSOC_BO_NON_SCANOUT));
 
-	ret = drmIoctl(fd, DRM_IOCTL_ROCKCHIP_GEM_CREATE, &create_rockchip);
+	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
 	if (ret)
 		return ret;
 
-	/* Convert custom create_rockchip to generic create_gem */
-	create_gem->handle = create_rockchip.handle;
+	/* Convert custom arg to generic create_gem */
+	create_gem->handle = arg.handle;
 	create_gem->pitch = pitch;
-	create_gem->size = create_rockchip.size;
+	create_gem->size = arg.size;
 
 	return 0;
 }
 
 struct drmmode_interface rockchip_interface = {
+	"rockchip"	      /* name of drm driver */,
 	1                     /* use_page_flip_events */,
 	1                     /* use_early_display */,
 	CURSORW               /* cursor width */,
@@ -104,8 +97,3 @@ NULL/*	init_plane_for_cursor*/ /* init_plane_for_cursor */,
 	0                     /* vblank_query_supported */,
 	create_custom_gem     /* create_custom_gem */,
 };
-
-struct drmmode_interface *drmmode_interface_get_implementation(int drm_fd)
-{
-	return &rockchip_interface;
-}

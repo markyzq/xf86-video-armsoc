@@ -733,6 +733,7 @@ static struct drmmode_interface *get_drmmode_implementation(int drm_fd)
 	drmVersionPtr version;
 	struct drmmode_interface *ret = NULL;
 	struct drmmode_interface *ifaces[] = {
+		&rockchip_interface,
 		&exynos_interface,
 		&pl111_interface,
 	};
