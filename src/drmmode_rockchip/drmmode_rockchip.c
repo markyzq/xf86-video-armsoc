@@ -79,7 +79,7 @@ static int create_custom_gem(int fd, struct armsoc_create_gem *create_gem)
 
 	/* Convert custom arg to generic create_gem */
 	create_gem->handle = arg.handle;
-	create_gem->pitch = pitch;
+	create_gem->pitch = arg.pitch;
 	create_gem->size = arg.size;
 
 	return 0;
